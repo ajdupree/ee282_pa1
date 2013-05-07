@@ -1,0 +1,20 @@
+Group: Andrew Dupree and Tony Vivoli
+Programming Assignment 1
+Progress Report
+
+A few optimizations we have tried so far include matrix blocking and transposing matrix B, SSE vector intrinsics, and loop unrolling.
+
+Blocked matrix multiplication allows us to increase our 
+
+
+NAIVE					
+	MFLPS		CPI		Cache Misses
+16  	1548	 	0.46453  	0
+256	762.553		1.01101		17123886
+1024	N/A		N/A		N/A
+
+Optimized
+	MFLPS		CPI		Cache Misses
+16  	2480.957	0.55237  	0
+256	2617.081	0.90131		2614031				
+1024	2580.949	0.93662		1273624794

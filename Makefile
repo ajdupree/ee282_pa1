@@ -1,7 +1,16 @@
 ## Provide your own options or compiler here.
 CC = gcc
 #CC = icc
-CFLAGS += -O3 -g -Wl,-no-as-needed -malign-double -lm -msse3
+CFLAGS += 	-O4 
+CFLAGS += 	-Wl,-no-as-needed 
+CFLAGS += 	-malign-double 
+CFLAGS += 	-msse3
+# slower CFLAGS +=		-funroll-loops
+#CFLAGS += 	-ftree-vectorize 
+#CFLAGS += 	-ffast-math 
+#CFLAGS += 	-ftree-vectorizer-verbose=2 -msse2
+#CFLAGS += -march=native -fprefetch-loop-arrays
+
 
 ## You shouldn't need to edit anything past this point.
 

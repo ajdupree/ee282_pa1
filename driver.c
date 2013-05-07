@@ -40,7 +40,7 @@ int events[] = {
   PAPI_TOT_INS,
   PAPI_TOT_CYC,
   PAPI_L1_DCM,
-  PAPI_L2_TCM,
+  PAPI_L2_TCM,	
 };
 
 #define NUM_EVENTS (sizeof(events) / sizeof(int))

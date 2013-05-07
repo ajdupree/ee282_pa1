@@ -24,7 +24,8 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
   double sum[2];
   
   BT = (double*) memalign(16,sizeof(double)*N*N);
-  
+
+	//matrix transpose right here
   for(bi = 0; bi < N; bi += B1SIZE)
     for(bj = 0; bj < N; bj += B1SIZE)
       for(i = bi; i < min(bi+B1SIZE,N); i++)
@@ -56,12 +57,18 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
   {
   	// the for for for for for for for for for loop is not commonly
   	// seen in amateur play
+
+		/*Ok seriously what the sweet fuck is actually going on here?*/
+		
+		//second level blocking
   	for(bbi = 0; bbi < N; bbi += B2SIZE)
   		for(bbj = 0; bbj < N; bbj += B2SIZE)
   			for(bbk = 0; bbk < N; bbk += B2SIZE)
+					//first level blocking
   				for (bi = bbi; bi < min(bbi+B2SIZE,N); bi += B1SIZE)
   					for (bj = bbj; bj < min(bbj+B2SIZE,N); bj += B1SIZE)
   						for (bk = bbk; bk < min(bbk+B2SIZE,N); bk += B1SIZE)
+								//actual matrix multiplication
   							for (i = bi; i < min(bi+B1SIZE,N); i++)
   								for (j = bj; j < min(bj+B1SIZE,N); j++)
   								{

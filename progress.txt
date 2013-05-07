@@ -1,0 +1,30 @@
+Group: Andrew Dupree and Tony Vivoli
+Programming Assignment 1
+Progress Report
+
+Optimizations:
+
+A few optimizations we have tried so far include: 
+matrix blocking: we first implemented a single level blocking to improve 
+	cache performance, and played with block size to find the maximum 		performance.
+transposing matrix B: transposing B allows B to be accessed sequentially
+	in memory instead of large strides, which improved cache performance
+SSE vector intrinsics: Not having any luck with auto-vectorizing, we used
+	vector intrisics and hand coded a vectorized version of the
+	multiplication.
+loop unrolling: we manually unrolled the loop 16 times for matricies of size 		16 and above, and we plan on fully unrolling the inner loops for 		smaller sized matricies
+
+
+Performance:
+
+NAIVE					
+	MFLPS		CPI		Cache Misses
+16  	1548	 	0.46453  	0
+256	762.553		1.01101		17123886
+1024	N/A		N/A		N/A
+
+Optimized
+	MFLPS		CPI		Cache Misses
+16  	2480.957	0.55237  	0
+256	2617.081	0.90131		2614031				
+1024	2580.949	0.93662		1273624794
