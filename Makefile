@@ -2,15 +2,15 @@
 CC = gcc
 #CC = icc
 #CFLAGS +=		-g
-CFLAGS += 	-O3 
+CFLAGS += 	-O2 
 CFLAGS += 	-Wl,-no-as-needed 
 CFLAGS += 	-malign-double 
 CFLAGS += 	-msse3
-#CFLAGS +=		-funroll-loops
-#CFLAGS += 	-ftree-vectorize 
+CFLAGS +=		-funroll-loops
+CFLAGS += 	-ftree-vectorize 
 #CFLAGS += 	-ffast-math 
-#CFLAGS += 	-ftree-vectorizer-verbose=2 -msse2
-#CFLAGS += -march=native -fprefetch-loop-arrays
+CFLAGS += 	-ftree-vectorizer-verbose=2 -msse2
+CFLAGS += 	-march=native -fprefetch-loop-arrays
 
 
 ## You shouldn't need to edit anything past this point.
