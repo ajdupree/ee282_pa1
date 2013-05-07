@@ -1,11 +1,12 @@
 ## Provide your own options or compiler here.
 CC = gcc
 #CC = icc
-CFLAGS += 	-O4 
+#CFLAGS +=		-g
+CFLAGS += 	-O3 
 CFLAGS += 	-Wl,-no-as-needed 
 CFLAGS += 	-malign-double 
 CFLAGS += 	-msse3
-# slower CFLAGS +=		-funroll-loops
+#CFLAGS +=		-funroll-loops
 #CFLAGS += 	-ftree-vectorize 
 #CFLAGS += 	-ffast-math 
 #CFLAGS += 	-ftree-vectorizer-verbose=2 -msse2
