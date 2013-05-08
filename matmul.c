@@ -10,15 +10,33 @@
 void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, double* __restrict__ C) {
   
   int i, j, k, bi, bj, bk,  I, J, K, BI, BJ, BK, NN, NB1SIZE;
-  register __m128d _A0, _B0, _C0, _A1, _B1, _C1, _A2, _A3, _A4,_A5,_A6,_A7,_C2,_C3;
+	__m128d _a00, _a11, _a22, _a33, _b01, _b23, _c01, _c23;
+	__m128d _A0, _B0, _C0, _A1, _B1, _C1, _A2, _A3, _A4,_A5,_A6,_A7,_C2,_C3;
 
-	NN = N*N;
 
   switch(N)
   {
 		case 2:
+			// VECTORSSSSS!!!!!!11!1111!!11
+			_a00 = _mm_set1_pd(A[0]);
+			_a11 = _mm_set1_pd(A[1]);
+			_b01 = _mm_load_pd(&B[0]);
+			_b23 = _mm_load_pd(&B[2]);
+			_a22 = _mm_set1_pd(A[2]);
+			_a33 = _mm_set1_pd(A[3]);
+			_c01 = _mm_load_pd(&C[0]);
+			_c23 = _mm_load_pd(&C[2]);
+			
+			_mm_store_pd(C, _mm_add_pd(_mm_add_pd(_mm_mul_pd(_a00,_b01),_mm_mul_pd(_a11,_b23)), _c01));
+			_mm_store_pd(C+2, _mm_add_pd(_mm_add_pd(_mm_mul_pd(_a22,_b01),_mm_mul_pd(_a33,_b23)), _c23));
+
+			break;
+
+
 		case 4:
 		case 8:
+			NN = N*N;
+			
 
 			for (I = 0; I < NN; I += N)
 				for (k = 0, K = 0; K < NN; k++, K += N)
@@ -34,6 +52,8 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 		case 512:
 		case 1024:
 		case 2048:
+			NN = N*N;
+  		
 
 			// yeah yeah, i know the compiler optimizer should handle available expressions...
 			NB1SIZE = N*B1SIZE;
@@ -53,14 +73,14 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 							do {
 								__builtin_prefetch(B + K + N + j); //hurts performance under around 128
 								//__builtin_prefetch(A + I + (N<<2) + j); //hurts performance under around 128
-								_A0 = _mm_set_pd(A[I+k], 					A[I+k]);
-								_A1 = _mm_set_pd(A[I+k+1], 				A[I+k+1]);
-								_A2 = _mm_set_pd(A[I+N+k], 				A[I+N+k]);
-								_A3 = _mm_set_pd(A[I+N+k+1], 			A[I+N+k+1]);
-								_A4 = _mm_set_pd(A[I+(N<<1)+k], 	A[I+(N<<1)+k]);
-								_A5 = _mm_set_pd(A[I+(N<<1)+k+1], A[I+(N<<1)+k+1]);
-								_A6 = _mm_set_pd(A[I+3*N+k], 			A[I+3*N+k]);
-								_A7 = _mm_set_pd(A[I+3*N+k+1], 		A[I+3*N+k+1]);
+								_A0 = _mm_set1_pd(A[I+k]);
+								_A1 = _mm_set1_pd(A[I+k+1]);
+								_A2 = _mm_set1_pd(A[I+N+k]);
+								_A3 = _mm_set1_pd(A[I+N+k+1]);
+								_A4 = _mm_set1_pd(A[I+(N<<1)+k]);
+								_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
+								_A6 = _mm_set1_pd(A[I+3*N+k]);
+								_A7 = _mm_set1_pd(A[I+3*N+k+1]);
 
 								j = bj;
 								do {
