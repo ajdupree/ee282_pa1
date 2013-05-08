@@ -10,6 +10,8 @@ void matmul_aux(int N, const double* __restrict__ A, const double* __restrict__ 
 	double* __restrict__ C, int B1SIZE); 
 void matmul_aux_prefetched(int N, const double* __restrict__ A, const double* __restrict__ B, 
 	double* __restrict__ C, int B1SIZE); 
+void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __restrict__ B, 
+	double* __restrict__ C);
 
 void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, double* __restrict__ C) {
   
@@ -38,6 +40,9 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 
 
 		case 4:
+    	
+			// code is 100% self explanatory. no comments needed.
+
 			_a00 = _mm_set1_pd(A[0]);
 			_a11 = _mm_set1_pd(A[1]);
 			_a22 = _mm_set1_pd(A[2]);
@@ -141,7 +146,11 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 		case 128:
 		case 256:
 		case 512:
+			matmul_aux_nonblocked(N,A,B,C);
+			break;
 		case 1024:
+			matmul_aux_prefetched(N,A,B,C,256);
+			break;
 		case 2048:
 			matmul_aux_prefetched(N,A,B,C,256);
 			break;
@@ -409,5 +418,120 @@ void matmul_aux(int N, const double* __restrict__ A, const double* __restrict__ 
 		} while(BK < NN);
 		BI += NB1SIZE;
 	} while(BI < NN);
+
+}
+
+void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __restrict__ B, 
+	double* __restrict__ C)
+{
+  int i, j, k, bi, bj, bk,  I, J, K, BI, BJ, BK, NN;
+	__m128d _A0, _B0, _C0, _A1, _B1, _C1, _A2, _A3, _A4,_A5,_A6,_A7,_C2,_C3;
+	
+	NN = N*N;
+
+	// do while all up in this bitch. should be a tiny bit faster than a for loop.
+	I = 0;
+	do {
+		k = 0; K = 0;
+		do {
+			_A0 = _mm_set1_pd(A[I+k]);
+			_A1 = _mm_set1_pd(A[I+k+1]);
+			_A2 = _mm_set1_pd(A[I+N+k]);
+			_A3 = _mm_set1_pd(A[I+N+k+1]);
+			_A4 = _mm_set1_pd(A[I+(N<<1)+k]);
+			_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
+			_A6 = _mm_set1_pd(A[I+3*N+k]);
+			_A7 = _mm_set1_pd(A[I+3*N+k+1]);
+
+			j = 0;
+			do {
+				// VECTORS: How do they work? (intrinsicly?)
+				_B0 = _mm_load_pd(&B[K+j]);
+				_B1 = _mm_load_pd(&B[K+N+j]);
+				_C0 = _mm_load_pd(&C[I+j]);
+				_C1 = _mm_load_pd(&C[I+N+j]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j]);
+				_C3 = _mm_load_pd(&C[I+3*N+j]);
+				_mm_store_pd(C+I+j, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+2]);
+				_B1 = _mm_load_pd(&B[K+N+j+2]);
+				_C0 = _mm_load_pd(&C[I+j+2]);
+				_C1 = _mm_load_pd(&C[I+N+j+2]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+2]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+2]);
+				_mm_store_pd(C+I+j+2, 		 	 	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+2, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+2,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+2,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+4]);
+				_B1 = _mm_load_pd(&B[K+N+j+4]);
+				_C0 = _mm_load_pd(&C[I+j+4]);
+				_C1 = _mm_load_pd(&C[I+N+j+4]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+4]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+4]);
+				_mm_store_pd(C+I+j+4, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+4, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+4,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+4,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+6]);
+				_B1 = _mm_load_pd(&B[K+N+j+6]);
+				_C0 = _mm_load_pd(&C[I+j+6]);
+				_C1 = _mm_load_pd(&C[I+N+j+6]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+6]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+6]);
+				_mm_store_pd(C+I+j+6, 		 	 	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+6, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+6,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+6,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+8]);
+				_B1 = _mm_load_pd(&B[K+N+j+8]);
+				_C0 = _mm_load_pd(&C[I+j+8]);
+				_C1 = _mm_load_pd(&C[I+N+j+8]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+8]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+8]);
+				_mm_store_pd(C+I+j+8, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+8, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+8,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+8,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+10]);
+				_B1 = _mm_load_pd(&B[K+N+j+10]);
+				_C0 = _mm_load_pd(&C[I+j+10]);
+				_C1 = _mm_load_pd(&C[I+N+j+10]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+10]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+10]);
+				_mm_store_pd(C+I+j+10, 		 	 	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+10, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+10,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+10,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+12]);
+				_B1 = _mm_load_pd(&B[K+N+j+12]);
+				_C0 = _mm_load_pd(&C[I+j+12]);
+				_C1 = _mm_load_pd(&C[I+N+j+12]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+12]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+12]);
+				_mm_store_pd(C+I+j+12, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+12, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+12,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+12,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				_B0 = _mm_load_pd(&B[K+j+14]);
+				_B1 = _mm_load_pd(&B[K+N+j+14]);
+				_C0 = _mm_load_pd(&C[I+j+14]);
+				_C1 = _mm_load_pd(&C[I+N+j+14]);
+				_C2 = _mm_load_pd(&C[I+(N<<1)+j+14]);
+				_C3 = _mm_load_pd(&C[I+3*N+j+14]);
+				_mm_store_pd(C+I+j+14, 		 	 	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
+				_mm_store_pd(C+I+N+j+14, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
+				_mm_store_pd(C+I+(N<<1)+j+14,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
+				_mm_store_pd(C+I+3*N+j+14,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
+				
+				j += 16;
+			} while(j < N);
+			k+=2; K += N<<1;
+		} while(K < NN);
+		I += N<<2;
+	} while(I <NN);
 
 }
