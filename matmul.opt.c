@@ -15,11 +15,10 @@ void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __
 
 void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, double* __restrict__ C) {
   
-  int i, j, k, bi, bj, bk,  I, J, K, BI, BJ, BK, NN, NB1SIZE, B1SIZE;
+  int i, j, k, bi, bj, bk,  I, J, K, BI, BJ, BK, NN, NB1SIZE;
 	__m128d _a00, _a11, _a22, _a33, _a44, _a55, _a66, _a77, _b01, _b23, _b45, _b67, _c01, _c23, _sum0, _sum1;
 	__m128d _A0, _B0, _C0, _A1, _B1, _C1, _A2, _A3, _A4,_A5,_A6,_A7,_C2,_C3;
 
-	B1SIZE = 256;
 
   switch(N)
   {
@@ -38,8 +37,12 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 			_mm_store_pd(C+2, _mm_add_pd(_mm_add_pd(_mm_mul_pd(_a22,_b01),_mm_mul_pd(_a33,_b23)), _c23));
 
 			break;
+
+
 		case 4:
+    	
 			// code is 100% self explanatory. no comments needed.
+
 			_a00 = _mm_set1_pd(A[0]);
 			_a11 = _mm_set1_pd(A[1]);
 			_a22 = _mm_set1_pd(A[2]);
@@ -123,13 +126,18 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 			_sum1 = _mm_add_pd(_mm_mul_pd(_a66,_b45),_mm_mul_pd(_a77,_b67));
 			_sum0 = _mm_add_pd(_mm_add_pd(_sum0,_sum1),_c23);
 			_mm_store_pd(C+14, _sum0);
+
 			break;
+
+
 		case 8:
 			NN = N*N;
 			
-			for(I = 0; I < NN; I += N<<2)
+			I = 0;
+			do
 			{
-				for(k = 0, K = 0; k < N; k+=2,K+=N<<1)
+				k = 0; K = 0;
+				do
 				{
 					_A0 = _mm_set1_pd(A[I+k]);
 					_A1 = _mm_set1_pd(A[I+k+1]);
@@ -140,7 +148,8 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 					_A6 = _mm_set1_pd(A[I+3*N+k]);
 					_A7 = _mm_set1_pd(A[I+3*N+k+1]);
 
-					for(j = 0; j < N; j+=2)
+					j = 0;
+					do
 					{
 						_B0 = _mm_load_pd(&B[K+j]);
 						_B1 = _mm_load_pd(&B[K+N+j]);
@@ -153,87 +162,18 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 						_mm_store_pd(C+I+(N<<1)+j,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
 						_mm_store_pd(C+I+3*N+j,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
 
-					}
-				}
-			}
+						j+=2;
+					} while(j < N);
+					k+=2; K += N<<1;
+				} while(K < NN);
+				I += N<<2;
+			} while(I < NN);
+		
+
 			break;
 
 		case 16:
-			NN = N*N;
-			
-			for(I = 0; I < NN; I += N<<2)
-			{
-				for(k = 0, K = 0; k < N; k+=2,K+=N<<1)
-				{
-					_A0 = _mm_set1_pd(A[I+k]);
-					_A1 = _mm_set1_pd(A[I+k+1]);
-					_A2 = _mm_set1_pd(A[I+N+k]);
-					_A3 = _mm_set1_pd(A[I+N+k+1]);
-					_A4 = _mm_set1_pd(A[I+(N<<1)+k]);
-					_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
-					_A6 = _mm_set1_pd(A[I+3*N+k]);
-					_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-
-					for(j = 0; j < N; j+=2)
-					{
-						_B0 = _mm_load_pd(&B[K+j]);
-						_B1 = _mm_load_pd(&B[K+N+j]);
-						_C0 = _mm_load_pd(&C[I+j]);
-						_C1 = _mm_load_pd(&C[I+N+j]);
-						_C2 = _mm_load_pd(&C[I+(N<<1)+j]);
-						_C3 = _mm_load_pd(&C[I+3*N+j]);
-						_mm_store_pd(C+I+j, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
-						_mm_store_pd(C+I+N+j, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
-						_mm_store_pd(C+I+(N<<1)+j,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
-						_mm_store_pd(C+I+3*N+j,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-
-					}
-				}
-			}
-			break;
-
 		case 32:
-			NN = N*N;
-			
-			for(I = 0; I < NN; I += N<<2)
-			{
-				for(k = 0, K = 0; k < N; k+=2,K+=N<<1)
-				{
-					_A0 = _mm_set1_pd(A[I+k]);
-					_A1 = _mm_set1_pd(A[I+k+1]);
-					_A2 = _mm_set1_pd(A[I+N+k]);
-					_A3 = _mm_set1_pd(A[I+N+k+1]);
-					_A4 = _mm_set1_pd(A[I+(N<<1)+k]);
-					_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
-					_A6 = _mm_set1_pd(A[I+3*N+k]);
-					_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-
-					for(j = 0; j < N; j+=4)
-					{
-						_B0 = _mm_load_pd(&B[K+j]);
-						_B1 = _mm_load_pd(&B[K+N+j]);
-						_C0 = _mm_load_pd(&C[I+j]);
-						_C1 = _mm_load_pd(&C[I+N+j]);
-						_C2 = _mm_load_pd(&C[I+(N<<1)+j]);
-						_C3 = _mm_load_pd(&C[I+3*N+j]);
-						_mm_store_pd(C+I+j, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
-						_mm_store_pd(C+I+N+j, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
-						_mm_store_pd(C+I+(N<<1)+j,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
-						_mm_store_pd(C+I+3*N+j,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-						_B0 = _mm_load_pd(&B[K+j+2]);
-						_B1 = _mm_load_pd(&B[K+N+j+2]);
-						_C0 = _mm_load_pd(&C[I+j+2]);
-						_C1 = _mm_load_pd(&C[I+N+j+2]);
-						_C2 = _mm_load_pd(&C[I+(N<<1)+j+2]);
-						_C3 = _mm_load_pd(&C[I+3*N+j+2]);
-						_mm_store_pd(C+I+j+2, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
-						_mm_store_pd(C+I+N+j+2, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
-						_mm_store_pd(C+I+(N<<1)+j+2,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
-						_mm_store_pd(C+I+3*N+j+2,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-
-					}
-				}
-			}
 		case 64:
 		case 128:
 		case 256:
@@ -241,6 +181,8 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 			matmul_aux_nonblocked(N,A,B,C);
 			break;
 		case 1024:
+			matmul_aux_prefetched(N,A,B,C,256);
+			break;
 		case 2048:
 			matmul_aux_prefetched(N,A,B,C,256);
 			break;
@@ -259,20 +201,22 @@ void matmul_aux_prefetched(int N, const double* __restrict__ A, const double* __
 	
 	NN = N*N;
 	NB1SIZE = N*B1SIZE;
-	
-	for(BI = 0; BI < NN; BI += NB1SIZE)
-	{
-		for(bk = 0, BK = 0; bk < N; bk += B1SIZE, BK += NB1SIZE)
-		{
-			for(bj = 0; bj < N; bj += B1SIZE)
-			{
-				for(I = BI; I < min(BI+NB1SIZE,NN); I+=N<<2)
-				{
-					 __builtin_prefetch(C + I + N + bj); 
-					 __builtin_prefetch(A + I + (N<<2) + bk + bj);
-					for(k = bk, K = BK; k < min(bk+B1SIZE,N); k+=2, K+=N<<1)
-					{
-						__builtin_prefetch(B + K + N + bj); 
+
+	// do while all up in this bitch. should be a tiny bit faster than a for loop.
+	BI = 0;
+	do {
+		bk = 0; BK = 0;
+		do {
+			bj = 0;
+			do {
+				I = BI;
+				do {
+					 __builtin_prefetch(C + I + N + j); //hurts performance under around 128
+					 //__builtin_prefetch(A + I + (N<<2) + bk + j);
+					k = bk; K = BK;
+					do {
+						__builtin_prefetch(B + K + N + j); //hurts performance under around 128
+						//__builtin_prefetch(A + I + (N<<2) + j); //hurts performance under around 128
 						_A0 = _mm_set1_pd(A[I+k]);
 						_A1 = _mm_set1_pd(A[I+k+1]);
 						_A2 = _mm_set1_pd(A[I+N+k]);
@@ -281,8 +225,10 @@ void matmul_aux_prefetched(int N, const double* __restrict__ A, const double* __
 						_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
 						_A6 = _mm_set1_pd(A[I+3*N+k]);
 						_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-						for(j = bj; j < min(bj+B1SIZE,N); j+=16)
-						{
+
+						j = bj;
+						do {
+							// VECTORS: How do they work? (intrinsicly?)
 							_B0 = _mm_load_pd(&B[K+j]);
 							_B1 = _mm_load_pd(&B[K+N+j]);
 							_C0 = _mm_load_pd(&C[I+j]);
@@ -363,12 +309,19 @@ void matmul_aux_prefetched(int N, const double* __restrict__ A, const double* __
 							_mm_store_pd(C+I+N+j+14, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
 							_mm_store_pd(C+I+(N<<1)+j+14,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
 							_mm_store_pd(C+I+3*N+j+14,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-						}
-					}
-				}
-			}
-		}
-	}
+							
+							j += 16;
+						} while(j < min(bj+B1SIZE,N));
+						k+=2; K += N<<1;
+					} while(K < min(BK+NB1SIZE,NN));
+					I += N<<2;
+				} while(I < min(BI+NB1SIZE,NN));
+				bj += B1SIZE;
+			} while(bj < N);
+			bk += B1SIZE; BK += NB1SIZE;
+		} while(BK < NN);
+		BI += NB1SIZE;
+	} while(BI < NN);
 
 }
 
@@ -381,16 +334,17 @@ void matmul_aux(int N, const double* __restrict__ A, const double* __restrict__ 
 	NN = N*N;
 	NB1SIZE = N*B1SIZE;
 
-	for(BI = 0; BI < NN; BI += NB1SIZE)
-	{
-		for(bk = 0, BK = 0; bk < N; bk += B1SIZE, BK += NB1SIZE)
-		{
-			for(bj = 0; bj < N; bj += B1SIZE)
-			{
-				for(I = BI; I < min(BI+NB1SIZE,NN); I+=N<<2)
-				{
-					for(k = bk, K = BK; k < min(bk+B1SIZE,N); k+=2, K+=N<<1)
-					{
+	// do while all up in this bitch. should be a tiny bit faster than a for loop.
+	BI = 0;
+	do {
+		bk = 0; BK = 0;
+		do {
+			bj = 0;
+			do {
+				I = BI;
+				do {
+					k = bk; K = BK;
+					do {
 						_A0 = _mm_set1_pd(A[I+k]);
 						_A1 = _mm_set1_pd(A[I+k+1]);
 						_A2 = _mm_set1_pd(A[I+N+k]);
@@ -399,8 +353,10 @@ void matmul_aux(int N, const double* __restrict__ A, const double* __restrict__ 
 						_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
 						_A6 = _mm_set1_pd(A[I+3*N+k]);
 						_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-						for(j = bj; j < min(bj+B1SIZE,N); j+=16)
-						{
+
+						j = bj;
+						do {
+							// VECTORS: How do they work? (intrinsicly?)
 							_B0 = _mm_load_pd(&B[K+j]);
 							_B1 = _mm_load_pd(&B[K+N+j]);
 							_C0 = _mm_load_pd(&C[I+j]);
@@ -481,12 +437,20 @@ void matmul_aux(int N, const double* __restrict__ A, const double* __restrict__ 
 							_mm_store_pd(C+I+N+j+14, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
 							_mm_store_pd(C+I+(N<<1)+j+14,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
 							_mm_store_pd(C+I+3*N+j+14,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-						}
-					}
-				}
-			}
-		}
-	}
+							
+							j += 16;
+						} while(j < min(bj+B1SIZE,N));
+						k+=2; K += N<<1;
+					} while(K < min(BK+NB1SIZE,NN));
+					I += N<<2;
+				} while(I < min(BI+NB1SIZE,NN));
+				bj += B1SIZE;
+			} while(bj < N);
+			bk += B1SIZE; BK += NB1SIZE;
+		} while(BK < NN);
+		BI += NB1SIZE;
+	} while(BI < NN);
+
 }
 
 void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __restrict__ B, 
@@ -497,13 +461,11 @@ void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __
 	
 	NN = N*N;
 
-	for(I = 0; I < NN; I+=N<<2)
-	{
-	///__builtin_prefetch(C + I + N + bj); 
-	///__builtin_prefetch(A + I + (N<<2) + bk + bj);
-		for(k = 0, K = 0; k < N; k+=2, K+=N<<1)
-		{
-			//__builtin_prefetch(B + K + N + bj); 
+	// do while all up in this bitch. should be a tiny bit faster than a for loop.
+	I = 0;
+	do {
+		k = 0; K = 0;
+		do {
 			_A0 = _mm_set1_pd(A[I+k]);
 			_A1 = _mm_set1_pd(A[I+k+1]);
 			_A2 = _mm_set1_pd(A[I+N+k]);
@@ -512,8 +474,10 @@ void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __
 			_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
 			_A6 = _mm_set1_pd(A[I+3*N+k]);
 			_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-			for(j = 0; j < N; j+=16)
-			{
+
+			j = 0;
+			do {
+				// VECTORS: How do they work? (intrinsicly?)
 				_B0 = _mm_load_pd(&B[K+j]);
 				_B1 = _mm_load_pd(&B[K+N+j]);
 				_C0 = _mm_load_pd(&C[I+j]);
@@ -594,7 +558,12 @@ void matmul_aux_nonblocked(int N, const double* __restrict__ A, const double* __
 				_mm_store_pd(C+I+N+j+14, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
 				_mm_store_pd(C+I+(N<<1)+j+14,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
 				_mm_store_pd(C+I+3*N+j+14,		_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-			}
-		}
-	}
+				
+				j += 16;
+			} while(j < N);
+			k+=2; K += N<<1;
+		} while(K < NN);
+		I += N<<2;
+	} while(I <NN);
+
 }
