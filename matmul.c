@@ -193,54 +193,23 @@ void matmul(int N, const double* __restrict__ A, const double* __restrict__ B, d
 			break;
 
 		case 32:
-			NN = N*N;
-			
-			for(I = 0; I < NN; I += N<<2)
-			{
-				for(k = 0, K = 0; k < N; k+=2,K+=N<<1)
-				{
-					_A0 = _mm_set1_pd(A[I+k]);
-					_A1 = _mm_set1_pd(A[I+k+1]);
-					_A2 = _mm_set1_pd(A[I+N+k]);
-					_A3 = _mm_set1_pd(A[I+N+k+1]);
-					_A4 = _mm_set1_pd(A[I+(N<<1)+k]);
-					_A5 = _mm_set1_pd(A[I+(N<<1)+k+1]);
-					_A6 = _mm_set1_pd(A[I+3*N+k]);
-					_A7 = _mm_set1_pd(A[I+3*N+k+1]);
-
-					for(j = 0; j < N; j+=4)
-					{
-						_B0 = _mm_load_pd(&B[K+j]);
-						_B1 = _mm_load_pd(&B[K+N+j]);
-						_C0 = _mm_load_pd(&C[I+j]);
-						_C1 = _mm_load_pd(&C[I+N+j]);
-						_C2 = _mm_load_pd(&C[I+(N<<1)+j]);
-						_C3 = _mm_load_pd(&C[I+3*N+j]);
-						_mm_store_pd(C+I+j, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
-						_mm_store_pd(C+I+N+j, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
-						_mm_store_pd(C+I+(N<<1)+j,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
-						_mm_store_pd(C+I+3*N+j,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-						_B0 = _mm_load_pd(&B[K+j+2]);
-						_B1 = _mm_load_pd(&B[K+N+j+2]);
-						_C0 = _mm_load_pd(&C[I+j+2]);
-						_C1 = _mm_load_pd(&C[I+N+j+2]);
-						_C2 = _mm_load_pd(&C[I+(N<<1)+j+2]);
-						_C3 = _mm_load_pd(&C[I+3*N+j+2]);
-						_mm_store_pd(C+I+j+2, 				_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A0,_B0),_mm_mul_pd(_A1,_B1)),_C0));
-						_mm_store_pd(C+I+N+j+2, 			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A2,_B0),_mm_mul_pd(_A3,_B1)),_C1));
-						_mm_store_pd(C+I+(N<<1)+j+2,	_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A4,_B0),_mm_mul_pd(_A5,_B1)),_C2));
-						_mm_store_pd(C+I+3*N+j+2,			_mm_add_pd(_mm_add_pd(_mm_mul_pd(_A6,_B0),_mm_mul_pd(_A7,_B1)),_C3));
-
-					}
-				}
-			}
+			matmul_aux_nonblocked(N,A,B,C);
+			break;
 		case 64:
+			matmul_aux_nonblocked(N,A,B,C);
+			break;
 		case 128:
+			matmul_aux_nonblocked(N,A,B,C);
+			break;
 		case 256:
+			matmul_aux_nonblocked(N,A,B,C);
+			break;
 		case 512:
 			matmul_aux_nonblocked(N,A,B,C);
 			break;
 		case 1024:
+			matmul_aux_prefetched(N,A,B,C,256);
+			break;
 		case 2048:
 			matmul_aux_prefetched(N,A,B,C,256);
 			break;
